@@ -1,6 +1,7 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use std::collections::BinaryHeap;
 
-type Input = Vec<Vec<u64>>;
+type Input = BinaryHeap<u32>;
 
 #[aoc_generator(day1)]
 pub fn day1_generator(input: &str) -> Input {
@@ -27,5 +28,13 @@ pub fn solve_part2(input: &Input) -> u64 {
         .collect::<Vec<_>>();
     calorie_list.sort_unstable();
 
-    calorie_list.iter().rev().take(3).sum()
+    let mut sum = 0;
+
+    for _ in 0..3 {
+        if let Some(top) = calorie_heap.pop() {
+            sum += top;
+        }
+    }
+
+    sum
 }
