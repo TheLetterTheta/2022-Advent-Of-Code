@@ -7,9 +7,9 @@ pub fn day4_generator(input: &str) -> Input {
     input
         .lines()
         .map(|line| {
-            let (left, right) = line.split_once(",").unwrap();
-            let (one, two) = left.split_once("-").unwrap();
-            let (three, four) = right.split_once("-").unwrap();
+            let (left, right) = line.split_once(',').unwrap();
+            let (one, two) = left.split_once('-').unwrap();
+            let (three, four) = right.split_once('-').unwrap();
 
             (
                 (one.parse().unwrap(), two.parse().unwrap()),

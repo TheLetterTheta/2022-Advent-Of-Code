@@ -7,7 +7,7 @@ pub fn day2_generator(input: &str) -> Input {
     input
         .lines()
         .map(|l| {
-            let (them, you) = l.split_once(" ").unwrap();
+            let (them, you) = l.split_once(' ').unwrap();
             let them = match them {
                 "A" => 1,
                 "B" => 2,
@@ -29,7 +29,7 @@ pub fn day2_generator(input: &str) -> Input {
 #[aoc(day2, part1)]
 pub fn solve_part1(input: &Input) -> u32 {
     input
-        .into_iter()
+        .iter()
         .map(|&(them, you)| {
             if them == (you - 1) || (them == 3 && you == 1) {
                 you + 6

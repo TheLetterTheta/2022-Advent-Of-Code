@@ -49,7 +49,7 @@ pub fn solve_part1(input: &Input) -> String {
             state[*to].push(popped);
         }
     }
-    state.iter().map(|m| m.iter().rev().nth(0).unwrap()).collect::<String>()
+    state.iter().map(|m| m.iter().rev().next().unwrap()).collect::<String>()
 }
 
 #[aoc(day5, part2)]
@@ -67,5 +67,5 @@ pub fn solve_part2(input: &Input) -> String {
             state[*to].push(i);
         }
     }
-    state.iter().map(|m| m.iter().rev().nth(0).unwrap()).collect::<String>()
+    state.iter().map(|m| m.iter().rev().next().unwrap()).collect::<String>()
 }

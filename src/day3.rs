@@ -56,7 +56,7 @@ pub fn solve_part2(input: &Input) -> u32 {
         let third = chunk.next().unwrap();
 
         for s in first.intersection(&second) {
-            if third.contains(&s) {
+            if third.contains(s) {
                 if s.is_lowercase() {
                     sum += *s as u32 - 96;
                 } else {
