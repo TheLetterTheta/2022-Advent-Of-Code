@@ -61,5 +61,22 @@ pub fn solve_part1(input: &Input) -> i32 {
 
 #[aoc(day10, part2)]
 pub fn solve_part2(input: &Input) -> String {
-    todo!();
+    (0..)
+        .map(|index| (index % 40) + 1)
+        .zip(
+            input.iter()
+                .flat_map(|ins| match ins {
+                    Instruction::NoOp => vec![0],
+                    Instruction::Addx(a) => vec![0, *a]
+                })
+                .scan(1, |scan, inc| {
+                    let tmp = *scan;
+                    *scan += inc;
+                    Some(tmp)
+                })
+        )
+        .map(|(index, pos)| if index  == pos || index == pos + 1 || index == pos + 2 { '#' } else { ' ' })
+        .enumerate()
+        .flat_map(|(i, c)| if i % 40 == 0 { vec!['\n', c] } else { vec![c] } )
+        .collect::<String>()
 }
