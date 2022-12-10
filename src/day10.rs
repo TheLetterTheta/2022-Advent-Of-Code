@@ -1,11 +1,10 @@
 use aoc_runner_derive::{aoc, aoc_generator};
-use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{self, alpha1, line_ending},
+    character::complete::{self, line_ending},
     multi::separated_list1,
-    sequence::{preceded, separated_pair},
+    sequence::{preceded},
     IResult,
 };
 
@@ -25,8 +24,8 @@ fn parse_instruction(input: &str) -> IResult<&str, Instruction> {
             let (input, amount) = preceded(tag(" "), complete::i32)(input)?;
 
             (input, Instruction::Addx(amount))
-        },
-        _ => unreachable!()
+        }
+        _ => unreachable!(),
     })
 }
 
@@ -43,10 +42,11 @@ pub fn day10_generator(input: &str) -> Input {
 
 #[aoc(day10, part1)]
 pub fn solve_part1(input: &Input) -> i32 {
-    input.iter()
+    input
+        .iter()
         .flat_map(|ins| match ins {
             Instruction::NoOp => vec![0],
-            Instruction::Addx(a) => vec![0, *a]
+            Instruction::Addx(a) => vec![0, *a],
         })
         .scan(1, |scan, inc| {
             let tmp = *scan;
@@ -55,7 +55,7 @@ pub fn solve_part1(input: &Input) -> i32 {
         })
         .enumerate()
         .filter(|&(index, _)| (index + 21) % 40 == 0)
-        .map(|(i, value)| (dbg!((1 + i)) as i32) * dbg!(value))
+        .map(|(i, value)| (1 + i as i32) * value)
         .sum()
 }
 
@@ -64,19 +64,26 @@ pub fn solve_part2(input: &Input) -> String {
     (0..)
         .map(|index| (index % 40) + 1)
         .zip(
-            input.iter()
+            input
+                .iter()
                 .flat_map(|ins| match ins {
                     Instruction::NoOp => vec![0],
-                    Instruction::Addx(a) => vec![0, *a]
+                    Instruction::Addx(a) => vec![0, *a],
                 })
                 .scan(1, |scan, inc| {
                     let tmp = *scan;
                     *scan += inc;
                     Some(tmp)
-                })
+                }),
         )
-        .map(|(index, pos)| if index  == pos || index == pos + 1 || index == pos + 2 { '#' } else { ' ' })
+        .map(|(index, pos)| {
+            if index == pos || index == pos + 1 || index == pos + 2 {
+                '#'
+            } else {
+                ' '
+            }
+        })
         .enumerate()
-        .flat_map(|(i, c)| if i % 40 == 0 { vec!['\n', c] } else { vec![c] } )
+        .flat_map(|(i, c)| if i % 40 == 0 { vec!['\n', c] } else { vec![c] })
         .collect::<String>()
 }
