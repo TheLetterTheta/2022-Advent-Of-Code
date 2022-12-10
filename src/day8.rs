@@ -16,24 +16,23 @@ pub fn solve_part1(input: &Input) -> usize {
     let mut counted = HashSet::new();
 
     // left
-    for i in 1..(input.len() - 1) {
-        let mut max = input[i][0];
+    for (i, row) in input.iter().enumerate().take(input.len() - 1).skip(1) {
+        let mut max = row[0];
 
-        for j in 1..(input[i].len() - 1) {
-            let point = input[i][j];
-            if point > max {
-                max = point;
+        for (j, point) in row.iter().enumerate().take(row.len() - 1).skip(1) {
+            if point > &max {
+                max = *point;
                 counted.insert((i, j));
             }
         }
     }
 
     // right
-    for i in 1..(input.len() - 1) {
-        let mut max = input[i][input[i].len() - 1];
+    for (i, row) in input.iter().enumerate().take(input.len() - 1).skip(1) {
+        let mut max = row[input[i].len() - 1];
 
-        for j in (1..input[i].len() - 1).rev() {
-            let point = input[i][j];
+        for j in (1..row.len() - 1).rev() {
+            let point = row[j];
             if point > max {
                 max = point;
                 counted.insert((i, j));
@@ -45,8 +44,14 @@ pub fn solve_part1(input: &Input) -> usize {
     for j in 1..(input.len() - 1) {
         let mut max = input[0][j];
 
-        for i in 1..input[j].len() - 1 {
-            let point = input[i][j];
+        for (i, point) in input
+            .iter()
+            .enumerate()
+            .take(input[j].len() - 1)
+            .skip(1)
+            .map(|(i, r)| (i, r[j]))
+            .take_while(move |_| max < 9)
+        {
             if point > max {
                 max = point;
                 counted.insert((i, j));
@@ -80,61 +85,37 @@ pub fn solve_part1(input: &Input) -> usize {
 pub fn solve_part2(input: &Input) -> usize {
     let mut score = 0;
 
-    for i in 1..(input.len() - 1) {
-        for j in 1..(input.len() - 1) {
-            let curr = input[i][j];
+    for (i, row) in input.iter().enumerate().take(input.len() - 1).skip(1) {
+        for (j, curr) in row.iter().enumerate().take(row.len() - 1).skip(1) {
             let mut curr_score = 0;
 
             // compute score
+
+            curr_score += (0..i)
+                .rev()
+                .map(|k| input[k][j])
+                .take_while(|&check| check < *curr)
+                .count();
+            curr_score *= input
+                .iter()
+                .skip(i + 1)
+                .map(|row| row[j])
+                .take_while(|&check| check < *curr)
+                .count();
+            curr_score *= (0..j)
+                .rev()
+                .map(|k| input[i][k])
+                .take_while(|&check| check < *curr)
+                .count();
+
             let mut dist = 0;
-            for k in (0..i).rev() {
-                let check = input[k][j];
-
-                if check >= curr {
-                    dist += 1;
-                    break;
-                } else {
-                    dist += 1;
-                }
-            }
-
-            curr_score += dist;
-            dist = 0;
-
-            for check in input.iter().skip(i + 1).map(|row| row[j]) {
-                if check >= curr {
-                    dist += 1;
-                    break;
-                } else {
-                    dist += 1;
-                }
-            }
-
-            curr_score *= dist;
-            dist = 0;
 
             for k in (j + 1)..input[i].len() {
                 let check = input[i][k];
 
-                if check >= curr {
-                    dist += 1;
+                dist += 1;
+                if check >= *curr {
                     break;
-                } else {
-                    dist += 1;
-                }
-            }
-
-            curr_score *= dist;
-            dist = 0;
-
-            for k in (0..j).rev() {
-                let check = input[i][k];
-
-                if check >= curr {
-                    dist += 1;
-                    break;
-                } else {
-                    dist += 1;
                 }
             }
 
