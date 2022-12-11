@@ -2,9 +2,9 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{self},
+    character::complete::{self, line_ending, space0},
     multi::separated_list1,
-    sequence::preceded,
+    sequence::{preceded, tuple},
     IResult,
 };
 use num::integer::lcm;
@@ -46,19 +46,23 @@ fn parse_multiply(input: &str) -> IResult<&str, Operation> {
 fn parse_monkey(input: &str) -> IResult<&str, Monkey> {
     let (input, _) = preceded(tag("Monkey "), complete::u8)(input)?;
     let (input, items) = preceded(
-        tag(":\n  Starting items: "),
+        tuple((tag(":"), line_ending, space0, tag("Starting items: "))),
         separated_list1(tag(", "), complete::u64),
     )(input)?;
     let (input, operation) = preceded(
-        tag("\n  Operation: new = old "),
+        tuple((line_ending, space0, tag("Operation: new = old "))),
         alt((parse_add, parse_multiply, parse_square)),
     )(input)?;
     let (input, remainder) = preceded(tag("\n  Test: divisible by "), complete::u64)(input)?;
 
-    let (input, true_throw) =
-        preceded(tag("\n    If true: throw to monkey "), complete::u8)(input)?;
-    let (input, false_throw) =
-        preceded(tag("\n    If false: throw to monkey "), complete::u8)(input)?;
+    let (input, true_throw) = preceded(
+        tuple((line_ending, space0, tag("If true: throw to monkey "))),
+        complete::u8,
+    )(input)?;
+    let (input, false_throw) = preceded(
+        tuple((line_ending, space0, tag("If false: throw to monkey "))),
+        complete::u8,
+    )(input)?;
 
     let true_throw = true_throw as usize;
     let false_throw = false_throw as usize;
@@ -118,10 +122,7 @@ pub fn solve_part1(input: &Input) -> usize {
 
 #[aoc(day11, part2)]
 pub fn solve_part2(input: &Input) -> usize {
-    let lcm = input
-        .iter()
-        .map(|m| m.remainder)
-        .fold(1, lcm);
+    let lcm = input.iter().map(|m| m.remainder).fold(1, lcm);
 
     let mut input = input.clone();
     for _ in 0..10000 {
