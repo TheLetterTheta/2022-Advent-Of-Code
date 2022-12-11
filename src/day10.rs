@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::{self, line_ending},
     multi::separated_list1,
-    sequence::{preceded},
+    sequence::preceded,
     IResult,
 };
 
@@ -61,21 +61,19 @@ pub fn solve_part1(input: &Input) -> i32 {
 
 #[aoc(day10, part2)]
 pub fn solve_part2(input: &Input) -> String {
-    (0..)
-        .map(|index| (index % 40) + 1)
-        .zip(
-            input
-                .iter()
-                .flat_map(|ins| match ins {
-                    Instruction::NoOp => vec![0],
-                    Instruction::Addx(a) => vec![0, *a],
-                })
-                .scan(1, |scan, inc| {
-                    let tmp = *scan;
-                    *scan += inc;
-                    Some(tmp)
-                }),
-        )
+    input
+        .iter()
+        .flat_map(|ins| match ins {
+            Instruction::NoOp => vec![0],
+            Instruction::Addx(a) => vec![0, *a],
+        })
+        .scan(1, |scan, inc| {
+            let tmp = *scan;
+            *scan += inc;
+            Some(tmp)
+        })
+        .enumerate()
+        .map(|(i, v)| (((i % 40) + 1) as i32, v))
         .map(|(index, pos)| {
             if index == pos || index == pos + 1 || index == pos + 2 {
                 '#'
