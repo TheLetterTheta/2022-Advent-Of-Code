@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -8,6 +9,7 @@ use nom::{
     IResult,
 };
 use num::integer::lcm;
+use std::cmp::Reverse;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Operation {
@@ -116,8 +118,12 @@ pub fn solve_part1(input: &Input) -> usize {
         }
     }
 
-    input.sort_unstable_by_key(|m| m.inspected);
-    input.iter().rev().take(2).map(|m| m.inspected).product()
+    input
+        .iter()
+        .map(|k| Reverse(k.inspected))
+        .k_smallest(2)
+        .map(|n| n.0)
+        .product()
 }
 
 #[aoc(day11, part2)]
@@ -149,6 +155,10 @@ pub fn solve_part2(input: &Input) -> usize {
         }
     }
 
-    input.sort_unstable_by_key(|m| m.inspected);
-    input.iter().rev().take(2).map(|m| m.inspected).product()
+    input
+        .iter()
+        .map(|k| Reverse(k.inspected))
+        .k_smallest(2)
+        .map(|n| n.0)
+        .product()
 }
