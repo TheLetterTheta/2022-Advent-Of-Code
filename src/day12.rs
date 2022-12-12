@@ -114,7 +114,6 @@ pub fn solve_part1(input: &Input) -> usize {
     }
 
     let mut answer_key = vec![vec![' '; input[0].len()]; input.len()];
-    answer_key[end.0][end.1] = 'E';
 
     let mut path = end;
     let mut total = 0;
@@ -138,12 +137,15 @@ pub fn solve_part1(input: &Input) -> usize {
         }
         path = *from;
     }
+    answer_key[end.0][end.1] = 'E';
+    answer_key[start.0][start.1] = 'S';
 
     println!(
-        "{}",
+        "{0}\n{1}\n{0}",
+        (0..input[0].len() + 2).map(|_| '─').collect::<String>(),
         answer_key
             .iter()
-            .map(|line| line.iter().collect::<String>())
+            .map(|line| format!("│{}│", line.iter().collect::<String>()))
             .collect::<Vec<String>>()
             .join("\n")
     );
@@ -227,7 +229,6 @@ pub fn solve_part2(input: &Input) -> usize {
         }
 
         let mut answer_key = vec![vec![' '; input[0].len()]; input.len()];
-        answer_key[end.0][end.1] = 'E';
 
         let mut path = end;
         let mut total = 0;
@@ -258,15 +259,18 @@ pub fn solve_part2(input: &Input) -> usize {
 
         if total < min {
             min = total;
+            answer_key[end.0][end.1] = 'E';
+            answer_key[start.0][start.1] = 'S';
             shortest_print = answer_key.clone();
         }
     }
 
     println!(
-        "{}",
+        "{0}\n{1}\n{0}",
+        (0..input[0].len() + 2).map(|_| '─').collect::<String>(),
         shortest_print
             .iter()
-            .map(|line| line.iter().collect::<String>())
+            .map(|line| format!("│{}│", line.iter().collect::<String>()))
             .collect::<Vec<String>>()
             .join("\n")
     );
