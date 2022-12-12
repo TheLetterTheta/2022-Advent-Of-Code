@@ -4,7 +4,11 @@ use nom::{
     multi::{many1, separated_list1},
     IResult,
 };
-use std::collections::{HashMap, VecDeque};
+use petgraph::{
+    algo::astar,
+    prelude::{DiGraphMap, GraphMap},
+    Directed,
+};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Position {
@@ -51,7 +55,8 @@ pub fn solve_part1(input: &Input) -> usize {
                 }
             })
         })
-        .expect("No starting position");
+        .expect("No start position");
+
     let end = input
         .iter()
         .enumerate()
@@ -64,95 +69,78 @@ pub fn solve_part1(input: &Input) -> usize {
                 }
             })
         })
-        .expect("No starting position");
-
-    //                        Point -> FromPoint
-    let mut visited: HashMap<(usize, usize), (usize, usize)> = HashMap::new();
-    let mut queue = VecDeque::with_capacity(32);
-
-    queue.push_back(start);
+        .expect("No start position");
 
     let input: Vec<Vec<u8>> = input
         .iter()
-        .map(|i| i.iter().map(|(_, v)| *v).collect())
+        .map(|row| row.iter().map(|v| v.1).collect())
         .collect();
 
-    while let Some(curr) = queue.pop_front() {
-        let curr_val = input[curr.0][curr.1];
+    let mut edges = vec![];
+    for i in 0..input.len() {
+        for j in 0..input[i].len() {
+            let curr = input[i][j];
 
-        if curr.1 < input[0].len() - 1
-            && input[curr.0][curr.1 + 1] <= curr_val + 1
-            && !visited.contains_key(&(curr.0, curr.1 + 1))
-        {
-            visited.insert((curr.0, curr.1 + 1), curr);
-            queue.push_back((curr.0, curr.1 + 1));
-        }
-
-        if curr.0 < input.len() - 1
-            && input[curr.0 + 1][curr.1] <= curr_val + 1
-            && !visited.contains_key(&(curr.0 + 1, curr.1))
-        {
-            visited.insert((curr.0 + 1, curr.1), curr);
-            queue.push_back((curr.0 + 1, curr.1));
-        }
-
-        if curr.1 > 0
-            && input[curr.0][curr.1 - 1] <= curr_val + 1
-            && !visited.contains_key(&(curr.0, curr.1 - 1))
-        {
-            visited.insert((curr.0, curr.1 - 1), curr);
-            queue.push_back((curr.0, curr.1 - 1));
-        }
-
-        if curr.0 > 0
-            && input[curr.0 - 1][curr.1] <= curr_val + 1
-            && !visited.contains_key(&(curr.0 - 1, curr.1))
-        {
-            visited.insert((curr.0 - 1, curr.1), curr);
-            queue.push_back((curr.0 - 1, curr.1));
+            if i > 0 && input[i - 1][j] <= curr + 1 {
+                edges.push(((i, j), (i - 1, j)));
+            }
+            if j > 0 && input[i][j - 1] <= curr + 1 {
+                edges.push(((i, j), (i, j - 1)));
+            }
+            if i < input.len() - 1 && input[i + 1][j] <= curr + 1 {
+                edges.push(((i, j), (i + 1, j)));
+            }
+            if j < input[i].len() - 1 && input[i][j + 1] <= curr + 1 {
+                edges.push(((i, j), (i, j + 1)));
+            }
         }
     }
 
-    let mut answer_key = vec![vec![' '; input[0].len()]; input.len()];
-    answer_key[end.0][end.1] = 'E';
+    // edges represents the movement each node can make
+    let graph: GraphMap<(usize, usize), (), Directed> = DiGraphMap::from_edges(&edges);
 
-    let mut path = end;
-    let mut total = 0;
+    // compute from end to start
+    let (len, path) =
+        astar(&graph, start, |stop| stop == end, |_| 1, |_| 1).expect("No path from start to end");
 
-    while let Some(from) = visited.get(&path) {
-        total += 1;
+    let mut answer_string = vec![vec![' '; input[0].len()]; input.len()];
 
-        let print = if from.0 > path.0 {
-            '^'
-        } else if from.0 < path.0 {
+    let start = path.first().unwrap();
+    let last = path.last().unwrap();
+
+    let mut from = start;
+    for point in path.iter().skip(1) {
+        answer_string[from.0][from.1] = if from.0 < point.0 {
             'v'
-        } else if from.1 > path.1 {
-            '<'
-        } else {
+        } else if from.0 > point.0 {
+            '^'
+        } else if from.1 < point.1 {
             '>'
+        } else {
+            '<'
         };
-        answer_key[from.0][from.1] = print;
-
-        if *from == start {
-            break;
-        }
-        path = *from;
+        from = point;
     }
+
+    answer_string[last.0][last.1] = 'E';
+    answer_string[start.0][start.1] = 'S';
 
     println!(
-        "{}",
-        answer_key
+        "{0}\n{1}\n{0}",
+        (0..input[0].len()).map(|_| '🭺').collect::<String>(),
+        answer_string
             .iter()
-            .map(|line| line.iter().collect::<String>())
+            .map(|l| format!("▍{}▍", l.iter().collect::<String>()))
             .collect::<Vec<String>>()
             .join("\n")
     );
-    total
+
+    len
 }
 
 #[aoc(day12, part2)]
 pub fn solve_part2(input: &Input) -> usize {
-    let mut start_options = input
+    let start_options = input
         .iter()
         .enumerate()
         .flat_map(|(i, row)| {
@@ -176,99 +164,74 @@ pub fn solve_part2(input: &Input) -> usize {
         })
         .expect("No starting position");
 
-    let mut min = usize::MAX;
-    let mut shortest_print: Vec<Vec<char>> = vec![];
-    while let Some(start) = start_options.pop() {
-        //                        Point -> FromPoint
-        let mut visited: HashMap<(usize, usize), (usize, usize)> = HashMap::new();
-        let mut queue = VecDeque::with_capacity(32);
+    let input: Vec<Vec<u8>> = input
+        .iter()
+        .map(|row| row.iter().map(|v| v.1).collect())
+        .collect();
 
-        queue.push_back(start);
+    let mut edges = vec![];
+    for i in 0..input.len() {
+        for j in 0..input[i].len() {
+            let curr = input[i][j];
 
-        let input: Vec<Vec<u8>> = input
-            .iter()
-            .map(|i| i.iter().map(|(_, v)| *v).collect())
-            .collect();
-
-        while let Some(curr) = queue.pop_front() {
-            let curr_val = input[curr.0][curr.1];
-
-            if curr.1 < input[0].len() - 1
-                && input[curr.0][curr.1 + 1] <= curr_val + 1
-                && !visited.contains_key(&(curr.0, curr.1 + 1))
-            {
-                visited.insert((curr.0, curr.1 + 1), curr);
-                queue.push_back((curr.0, curr.1 + 1));
+            if i > 0 && input[i - 1][j] <= curr + 1 {
+                edges.push(((i, j), (i - 1, j)));
             }
-
-            if curr.0 < input.len() - 1
-                && input[curr.0 + 1][curr.1] <= curr_val + 1
-                && !visited.contains_key(&(curr.0 + 1, curr.1))
-            {
-                visited.insert((curr.0 + 1, curr.1), curr);
-                queue.push_back((curr.0 + 1, curr.1));
+            if j > 0 && input[i][j - 1] <= curr + 1 {
+                edges.push(((i, j), (i, j - 1)));
             }
-
-            if curr.1 > 0
-                && input[curr.0][curr.1 - 1] <= curr_val + 1
-                && !visited.contains_key(&(curr.0, curr.1 - 1))
-            {
-                visited.insert((curr.0, curr.1 - 1), curr);
-                queue.push_back((curr.0, curr.1 - 1));
+            if i < input.len() - 1 && input[i + 1][j] <= curr + 1 {
+                edges.push(((i, j), (i + 1, j)));
             }
-
-            if curr.0 > 0
-                && input[curr.0 - 1][curr.1] <= curr_val + 1
-                && !visited.contains_key(&(curr.0 - 1, curr.1))
-            {
-                visited.insert((curr.0 - 1, curr.1), curr);
-                queue.push_back((curr.0 - 1, curr.1));
+            if j < input[i].len() - 1 && input[i][j + 1] <= curr + 1 {
+                edges.push(((i, j), (i, j + 1)));
             }
-        }
-
-        let mut answer_key = vec![vec![' '; input[0].len()]; input.len()];
-        answer_key[end.0][end.1] = 'E';
-
-        let mut path = end;
-        let mut total = 0;
-
-        if !visited.contains_key(&path) {
-            continue;
-        }
-
-        while let Some(from) = visited.get(&path) {
-            total += 1;
-
-            let print = if from.0 > path.0 {
-                '^'
-            } else if from.0 < path.0 {
-                'v'
-            } else if from.1 > path.1 {
-                '<'
-            } else {
-                '>'
-            };
-            answer_key[from.0][from.1] = print;
-
-            if *from == start {
-                break;
-            }
-            path = *from;
-        }
-
-        if total < min {
-            min = total;
-            shortest_print = answer_key.clone();
         }
     }
 
+    // edges represents the movement each node can make
+    let graph: GraphMap<(usize, usize), (), Directed> = DiGraphMap::from_edges(&edges);
+
+    let min_path = start_options
+        .iter()
+        .filter_map(|start|
+        // edges represents the movement each node can make
+        astar(&graph, *start, |stop| stop == end, |_| 1, |_| 1))
+        .min_by_key(|(l, _)| *l)
+        .expect("No paths to end");
+
+    let mut answer_string = vec![vec![' '; input[0].len()]; input.len()];
+
+    let start = min_path.1.first().unwrap();
+    let last = min_path.1.last().unwrap();
+
+    let mut from = start;
+
+    answer_string[from.0][from.1] = 'S';
+    for point in min_path.1.iter().skip(1) {
+        answer_string[from.0][from.1] = if from.0 < point.0 {
+            'v'
+        } else if from.0 > point.0 {
+            '^'
+        } else if from.1 < point.1 {
+            '>'
+        } else {
+            '<'
+        };
+        from = point;
+    }
+    answer_string[last.0][last.1] = 'E';
+    answer_string[start.0][start.1] = 'S';
+
     println!(
-        "{}",
-        shortest_print
+        "{0}\n{1}\n{0}",
+        (0..input[0].len()).map(|_| '🭺').collect::<String>(),
+        answer_string
             .iter()
-            .map(|line| line.iter().collect::<String>())
+            .map(|l| format!("▍{}▍", l.iter().collect::<String>()))
             .collect::<Vec<String>>()
             .join("\n")
     );
-    min
+
+    min_path.0
 }
