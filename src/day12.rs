@@ -5,7 +5,7 @@ use nom::{
     IResult,
 };
 use petgraph::{
-    algo::astar,
+    algo::{dijkstra, astar},
     prelude::{DiGraphMap, GraphMap},
     Directed,
 };
@@ -140,16 +140,6 @@ pub fn solve_part1(input: &Input) -> usize {
 
 #[aoc(day12, part2)]
 pub fn solve_part2(input: &Input) -> usize {
-    let start_options = input
-        .iter()
-        .enumerate()
-        .flat_map(|(i, row)| {
-            row.iter()
-                .enumerate()
-                .filter_map(move |(j, &v)| if v.1 == 0 { Some((i, j)) } else { None })
-        })
-        .collect::<Vec<(usize, usize)>>();
-
     let end = input
         .iter()
         .enumerate()
@@ -174,16 +164,16 @@ pub fn solve_part2(input: &Input) -> usize {
         for j in 0..input[i].len() {
             let curr = input[i][j];
 
-            if i > 0 && input[i - 1][j] <= curr + 1 {
+            if i > 0 && input[i - 1][j] >= curr - 1 {
                 edges.push(((i, j), (i - 1, j)));
             }
-            if j > 0 && input[i][j - 1] <= curr + 1 {
+            if j > 0 && input[i][j - 1] >= curr - 1 {
                 edges.push(((i, j), (i, j - 1)));
             }
-            if i < input.len() - 1 && input[i + 1][j] <= curr + 1 {
+            if i < input.len() - 1 && input[i + 1][j] >= curr - 1 {
                 edges.push(((i, j), (i + 1, j)));
             }
-            if j < input[i].len() - 1 && input[i][j + 1] <= curr + 1 {
+            if j < input[i].len() - 1 && input[i][j + 1] >= curr - 1 {
                 edges.push(((i, j), (i, j + 1)));
             }
         }
@@ -192,46 +182,14 @@ pub fn solve_part2(input: &Input) -> usize {
     // edges represents the movement each node can make
     let graph: GraphMap<(usize, usize), (), Directed> = DiGraphMap::from_edges(&edges);
 
-    let min_path = start_options
-        .iter()
-        .filter_map(|start|
-        // edges represents the movement each node can make
-        astar(&graph, *start, |stop| stop == end, |_| 1, |_| 1))
-        .min_by_key(|(l, _)| *l)
-        .expect("No paths to end");
+    let mut smallest = usize::MAX;
 
-    let mut answer_string = vec![vec![' '; input[0].len()]; input.len()];
-
-    let start = min_path.1.first().unwrap();
-    let last = min_path.1.last().unwrap();
-
-    let mut from = start;
-
-    answer_string[from.0][from.1] = 'S';
-    for point in min_path.1.iter().skip(1) {
-        answer_string[from.0][from.1] = if from.0 < point.0 {
-            'v'
-        } else if from.0 > point.0 {
-            '^'
-        } else if from.1 < point.1 {
-            '>'
-        } else {
-            '<'
-        };
-        from = point;
+    let everywhere = dijkstra(&graph, end, None, |_| 1);
+    for (index, len) in everywhere.iter() {
+        let curr = input[index.0][index.1];
+        if curr == 0 && len < &smallest {
+            smallest = *len;
+        }
     }
-    answer_string[last.0][last.1] = 'E';
-    answer_string[start.0][start.1] = 'S';
-
-    println!(
-        "{0}\n{1}\n{0}",
-        (0..input[0].len()).map(|_| '🭺').collect::<String>(),
-        answer_string
-            .iter()
-            .map(|l| format!("▍{}▍", l.iter().collect::<String>()))
-            .collect::<Vec<String>>()
-            .join("\n")
-    );
-
-    min_path.0
+    smallest
 }
