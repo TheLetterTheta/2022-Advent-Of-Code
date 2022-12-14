@@ -90,13 +90,14 @@ impl<'a> Display for Grid<'a> {
 
 #[aoc(day14, part1)]
 pub fn solve_part1(input: &Input) -> usize {
+
     let (min_x, max_x) = match input
         .iter()
         .flat_map(|line| [line.0 .0, line.1 .0])
         .chain(std::iter::once(500))
         .minmax()
     {
-        MinMax(min, max) => (min, max),
+        MinMax(min, max) => (min, max - min),
         _ => unreachable!(),
     };
 
@@ -106,7 +107,7 @@ pub fn solve_part1(input: &Input) -> usize {
         .max()
         .unwrap();
 
-    let mut grid: Vec<Vec<Option<Simulation>>> = vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y)];
+    let mut grid: Vec<Vec<Option<Simulation>>> = vec![vec![None; 1 + max_x]; 1 + (max_y)];
 
     for line in input.iter() {
         // All lines are straight
@@ -123,59 +124,45 @@ pub fn solve_part1(input: &Input) -> usize {
         }
     }
 
-    'outer: loop {
-        let mut pos_x = 500;
-        for y in 0..max_y {
-            // look down
-            if grid[y + 1][pos_x - min_x].is_some() {
-                if pos_x - min_x > 0 {
-                    match grid[y + 1][pos_x - (1 + min_x)] {
-                        Some(_) => {
-                            if pos_x < max_x - 1 {
-                                match grid[y + 1][1 + pos_x - min_x] {
-                                    Some(_) => {
-                                        // nowhere below to place sand
-                                        grid[y][pos_x - min_x] = Some(Simulation::Sand);
-                                        continue 'outer;
-                                    }
-                                    None => {
-                                        pos_x += 1;
-                                        continue;
-                                    }
-                                }
-                            } else {
-                                // Exit condition - sand, and fall off side
-                                break 'outer;
-                            }
-                        }
-                        // Sand can go left
-                        None => {
-                            pos_x -= 1;
-                            continue;
-                        }
-                    }
-                } else {
-                    // Exit condition - sand, and fall off side
-                    break 'outer;
-                }
+    let mut stack = vec![(0, 500 - min_x)];
+    let mut count = 0;
+    while let Some(point) = stack.pop() {
+        if point.0 < max_y {
+
+            if grid[point.0 + 1][point.1].is_none() {
+                stack.push(point);
+                stack.push((point.0 + 1, point.1));
+                continue;
             }
 
-            if y == max_y - 1 {
-                // We've checked, and can place no more sand
-                break 'outer;
+            if point.1 > 0 && grid[point.0 + 1][point.1 - 1].is_none() {
+                stack.push(point);
+                stack.push((point.0 + 1, point.1 - 1));
+                continue;
+            } else if point.1 == 0 {
+                break;
             }
+
+            if point.1 < max_x - 1 && grid[point.0+1][point.1 + 1].is_none() {
+                stack.push(point);
+                stack.push((point.0 + 1, point.1 + 1));
+                continue;
+            } else if point.1 == max_x - 1 {
+                break;
+            }
+            
+
+            count += 1;
+            grid[point.0][point.1] = Some(Simulation::Sand);
+
+        } else {
+            break;
         }
     }
 
     println!("{}", Grid(&grid));
 
-    grid.iter()
-        .map(|line| {
-            line.iter()
-                .filter(|p| matches!(p, Some(Simulation::Sand)))
-                .count()
-        })
-        .sum()
+    count
 }
 
 #[aoc(day14, part2)]
@@ -236,12 +223,12 @@ pub fn solve_part2(input: &Input) -> usize {
 
         grid[point.0][point.1] = Some(Simulation::Sand);
         
-        if point.0 < max_y - 1 {
+        if point.0 < max_y {
 
             if point.1 < max_x - 1 && grid[point.0+1][point.1 + 1].is_none() {
                 stack.push((point.0 + 1, point.1 + 1));
             }
-            if point.0 > 0 && grid[point.0 + 1][point.1 - 1].is_none() {
+            if point.1 > 0 && grid[point.0 + 1][point.1 - 1].is_none() {
                 stack.push((point.0 + 1, point.1 - 1));
             }
             if grid[point.0 + 1][point.1].is_none() {
