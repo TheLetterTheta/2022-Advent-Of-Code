@@ -1,4 +1,5 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use colored::Colorize;
 use itertools::{Itertools, MinMaxResult::MinMax};
 use nom::{
     bytes::complete::tag,
@@ -67,20 +68,19 @@ impl<'a> Display for Grid<'a> {
         write!(
             f,
             "┏{0}┓\n{1}\n┗{0}┛",
-            std::iter::repeat('━')
-                .take(self.0.first().map(|f| f.len()).unwrap_or(0))
-                .collect::<String>(),
+            ("━".bright_white().bold()).repeat(self.0.first().map(|f| f.len()).unwrap_or(0)),
             self.0
                 .iter()
                 .map(|l| format!(
-                    "┃{}┃",
+                    "{1}{}{1}",
                     l.iter()
                         .map(|p| match p {
-                            Some(Simulation::Wall) => '#',
-                            Some(Simulation::Sand) => 'o',
-                            None => ' ',
+                            Some(Simulation::Wall) => "▉".white(),
+                            Some(Simulation::Sand) => "ஃ".bright_yellow().bold(),
+                            None => " ".clear(),
                         })
-                        .collect::<String>()
+                        .join(""),
+                    "┃".bright_white().bold()
                 ))
                 .join("\n")
         )?;
@@ -99,30 +99,26 @@ pub fn solve_part1(input: &Input) -> usize {
         MinMax(min, max) => (min, max),
         _ => unreachable!(),
     };
-    let (min_y, max_y) = match input
+
+    let max_y = input
         .iter()
         .flat_map(|line| [line.0 .1, line.1 .1])
-        .chain(std::iter::once(0))
-        .minmax()
-    {
-        MinMax(min, max) => (min, max),
-        _ => unreachable!(),
-    };
+        .max()
+        .unwrap();
 
-    let mut grid: Vec<Vec<Option<Simulation>>> =
-        vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y - min_y)];
+    let mut grid: Vec<Vec<Option<Simulation>>> = vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y)];
 
     for line in input.iter() {
         // All lines are straight
         if line.0 .0 == line.1 .0 {
             // Same x's
-            for y in line.0 .1..=line.1 .1 {
-                grid[y - min_y][line.0 .0 - min_x] = Some(Simulation::Wall);
+            for item in grid.iter_mut().take(line.1.1 + 1).skip(line.0.1) {
+                item[line.0 .0 - min_x] = Some(Simulation::Wall);
             }
         } else {
             // Guranteed to have same y's
             for x in line.0 .0..=line.1 .0 {
-                grid[line.0 .1 - min_y][x - min_x] = Some(Simulation::Wall);
+                grid[line.0 .1][x - min_x] = Some(Simulation::Wall);
             }
         }
     }
@@ -171,6 +167,8 @@ pub fn solve_part1(input: &Input) -> usize {
         }
     }
 
+    println!("{}", Grid(&grid));
+
     grid.iter()
         .map(|line| {
             line.iter()
@@ -182,15 +180,11 @@ pub fn solve_part1(input: &Input) -> usize {
 
 #[aoc(day14, part2)]
 pub fn solve_part2(input: &Input) -> usize {
-    let (_min_y, max_y) = match input
+    let max_y = input
         .iter()
         .flat_map(|line| [line.0 .1, line.1 .1])
-        .chain(std::iter::once(0))
-        .minmax()
-    {
-        MinMax(min, max) => (min, max),
-        _ => unreachable!(),
-    };
+        .max()
+        .unwrap();
 
     let floor_y = max_y + 2;
     let floor_len = 2 * (2 + max_y);
@@ -202,15 +196,12 @@ pub fn solve_part2(input: &Input) -> usize {
     ));
     let input = input;
 
-    let (min_y, max_y) = match input
+    let max_y = input
         .iter()
         .flat_map(|line| [line.0 .1, line.1 .1])
         .chain(std::iter::once(0))
-        .minmax()
-    {
-        MinMax(min, max) => (min, max),
-        _ => unreachable!(),
-    };
+        .max()
+        .unwrap();
 
     let (min_x, max_x) = match input
         .iter()
@@ -221,61 +212,42 @@ pub fn solve_part2(input: &Input) -> usize {
         _ => unreachable!(),
     };
 
-    let mut grid: Vec<Vec<Option<Simulation>>> =
-        vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y - min_y)];
+    let mut grid: Vec<Vec<Option<Simulation>>> = vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y)];
 
     for line in input.iter() {
         // All lines are straight
         if line.0 .0 == line.1 .0 {
             // Same x's
-            for y in line.0 .1..=line.1 .1 {
-                grid[y - min_y][line.0 .0 - min_x] = Some(Simulation::Wall);
+            for item in grid.iter_mut().take(line.1 .1 + 1).skip(line.0 .1) {
+                item[line.0 .0 - min_x] = Some(Simulation::Wall);
             }
         } else {
             // Guranteed to have same y's
             for x in line.0 .0..=line.1 .0 {
-                grid[line.0 .1 - min_y][x - min_x] = Some(Simulation::Wall);
+                grid[line.0 .1][x - min_x] = Some(Simulation::Wall);
             }
         }
     }
 
-    'outer: loop {
-        let mut pos_x = 500;
-        for y in 0..max_y {
-            if grid[y][pos_x - min_x].is_some() {
-                break 'outer;
+    let mut stack = vec![(0, 500 - min_x)];
+    let mut count = 0;
+    while let Some(point) = stack.pop() {
+        count += 1;
+
+        grid[point.0][point.1] = Some(Simulation::Sand);
+        
+        if point.0 < max_y - 1 {
+
+            if point.1 < max_x - 1 && grid[point.0+1][point.1 + 1].is_none() {
+                stack.push((point.0 + 1, point.1 + 1));
             }
-            // look down
-            if grid[y + 1][pos_x - min_x].is_some() {
-                match grid[y + 1][pos_x - (1 + min_x)] {
-                    Some(_) => {
-                        match grid[y + 1][1 + pos_x - min_x] {
-                            Some(_) => {
-                                // nowhere below to place sand
-                                grid[y][pos_x - min_x] = Some(Simulation::Sand);
-                                continue 'outer;
-                            }
-                            None => {
-                                pos_x += 1;
-                                continue;
-                            }
-                        }
-                    }
-                    // Sand can go left
-                    None => {
-                        pos_x -= 1;
-                        continue;
-                    }
-                }
+            if point.0 > 0 && grid[point.0 + 1][point.1 - 1].is_none() {
+                stack.push((point.0 + 1, point.1 - 1));
+            }
+            if grid[point.0 + 1][point.1].is_none() {
+                stack.push((point.0 + 1, point.1));
             }
         }
     }
-
-    grid.iter()
-        .map(|line| {
-            line.iter()
-                .filter(|p| matches!(p, Some(Simulation::Sand)))
-                .count()
-        })
-        .sum()
+    count
 }
