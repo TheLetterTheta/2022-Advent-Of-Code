@@ -137,8 +137,7 @@ pub fn solve_part1(input: &Input) -> usize {
 
     let mut stack = vec![(0, 500 - min_x)];
     let mut count = 0;
-    while let Some(point) = stack.pop() {
-        if point.0 < max_y {
+    while let Some(point) = stack.pop() && point.0 < max_y {
             if grid[point.0 + 1][point.1].is_none() {
                 stack.push(point);
                 stack.push((point.0 + 1, point.1));
@@ -150,6 +149,7 @@ pub fn solve_part1(input: &Input) -> usize {
                 stack.push((point.0 + 1, point.1 - 1));
                 continue;
             } else if point.1 == 0 {
+                // Fall off left
                 break;
             }
 
@@ -158,14 +158,12 @@ pub fn solve_part1(input: &Input) -> usize {
                 stack.push((point.0 + 1, point.1 + 1));
                 continue;
             } else if point.1 == max_x - 1 {
+                // Fall off right
                 break;
             }
 
             count += 1;
             grid[point.0][point.1] = Some(Simulation::Sand);
-        } else {
-            break;
-        }
     }
 
     println!("{}", Grid(&grid));

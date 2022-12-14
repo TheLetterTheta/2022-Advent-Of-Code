@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 use aoc_runner_derive::aoc_lib;
 
 mod day1;
