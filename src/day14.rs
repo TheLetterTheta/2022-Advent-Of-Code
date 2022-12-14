@@ -1,12 +1,10 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::{Itertools, MinMaxResult::MinMax};
 use nom::{
-    branch::alt,
     bytes::complete::tag,
     character::complete::{self, line_ending},
-    combinator::map,
-    multi::{separated_list0, separated_list1},
-    sequence::{delimited, separated_pair, tuple},
+    multi::separated_list1,
+    sequence::separated_pair,
     IResult,
 };
 use std::fmt::{Display, Formatter};
@@ -68,11 +66,14 @@ impl<'a> Display for Grid<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(
             f,
-            "{}",
+            "┏{0}┓\n{1}\n┗{0}┛",
+            std::iter::repeat('━')
+                .take(self.0.first().map(|f| f.len()).unwrap_or(0))
+                .collect::<String>(),
             self.0
                 .iter()
                 .map(|l| format!(
-                    "|{}|",
+                    "┃{}┃",
                     l.iter()
                         .map(|p| match p {
                             Some(Simulation::Wall) => '#',
@@ -86,12 +87,6 @@ impl<'a> Display for Grid<'a> {
         Ok(())
     }
 }
-/* grid.iter().map(|l| match l {
-    Some(Simulation::Wall) => '#',
-    Some(Simulation::Sand) => 'o',
-    None => ' '
-}
-*/
 
 #[aoc(day14, part1)]
 pub fn solve_part1(input: &Input) -> usize {
@@ -115,7 +110,7 @@ pub fn solve_part1(input: &Input) -> usize {
     };
 
     let mut grid: Vec<Vec<Option<Simulation>>> =
-        vec![vec![None; 1 + (max_x - min_x) as usize]; 1 + (max_y - min_y) as usize];
+        vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y - min_y)];
 
     for line in input.iter() {
         // All lines are straight
@@ -134,7 +129,7 @@ pub fn solve_part1(input: &Input) -> usize {
 
     'outer: loop {
         let mut pos_x = 500;
-        for y in (0..max_y) {
+        for y in 0..max_y {
             // look down
             if grid[y + 1][pos_x - min_x].is_some() {
                 if pos_x - min_x > 0 {
@@ -187,7 +182,7 @@ pub fn solve_part1(input: &Input) -> usize {
 
 #[aoc(day14, part2)]
 pub fn solve_part2(input: &Input) -> usize {
-    let (min_y, max_y) = match input
+    let (_min_y, max_y) = match input
         .iter()
         .flat_map(|line| [line.0 .1, line.1 .1])
         .chain(std::iter::once(0))
@@ -198,7 +193,7 @@ pub fn solve_part2(input: &Input) -> usize {
     };
 
     let floor_y = max_y + 2;
-    let floor_len = 2 * (4 + max_y);
+    let floor_len = 2 * (2 + max_y);
 
     let mut input = input.clone();
     input.push(Line(
@@ -227,7 +222,7 @@ pub fn solve_part2(input: &Input) -> usize {
     };
 
     let mut grid: Vec<Vec<Option<Simulation>>> =
-        vec![vec![None; 1 + (max_x - min_x) as usize]; 1 + (max_y - min_y) as usize];
+        vec![vec![None; 1 + (max_x - min_x)]; 1 + (max_y - min_y)];
 
     for line in input.iter() {
         // All lines are straight
@@ -246,7 +241,7 @@ pub fn solve_part2(input: &Input) -> usize {
 
     'outer: loop {
         let mut pos_x = 500;
-        for y in (0..max_y) {
+        for y in 0..max_y {
             if grid[y][pos_x - min_x].is_some() {
                 break 'outer;
             }
