@@ -67,20 +67,32 @@ impl<'a> Display for Grid<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(
             f,
-            "┏{0}┓\n{1}\n┗{0}┛",
-            ("━".bright_white().bold()).repeat(self.0.first().map(|f| f.len()).unwrap_or(0)),
+            "{0}\n{2}\n{1}",
+            format_args!(
+                "{}{}{}",
+                "▛".bright_white().bold(),
+                ("▀".bright_white().bold()).repeat(self.0.first().map(|f| f.len()).unwrap_or(0)),
+                "▜".bright_white().bold()
+            ),
+            format_args!(
+                "{}{}{}",
+                "▙".bright_white().bold(),
+                ("▄".bright_white().bold()).repeat(self.0.first().map(|f| f.len()).unwrap_or(0)),
+                "▟".bright_white().bold()
+            ),
             self.0
                 .iter()
                 .map(|l| format!(
-                    "{1}{}{1}",
+                    "{1}{}{2}",
                     l.iter()
                         .map(|p| match p {
-                            Some(Simulation::Wall) => "▉".white(),
+                            Some(Simulation::Wall) => "█".white(),
                             Some(Simulation::Sand) => "ஃ".bright_yellow().bold(),
                             None => " ".clear(),
                         })
                         .join(""),
-                    "┃".bright_white().bold()
+                    "▌".bright_white().bold(),
+                    "▐".bright_white().bold()
                 ))
                 .join("\n")
         )?;
@@ -90,7 +102,6 @@ impl<'a> Display for Grid<'a> {
 
 #[aoc(day14, part1)]
 pub fn solve_part1(input: &Input) -> usize {
-
     let (min_x, max_x) = match input
         .iter()
         .flat_map(|line| [line.0 .0, line.1 .0])
@@ -113,7 +124,7 @@ pub fn solve_part1(input: &Input) -> usize {
         // All lines are straight
         if line.0 .0 == line.1 .0 {
             // Same x's
-            for item in grid.iter_mut().take(line.1.1 + 1).skip(line.0.1) {
+            for item in grid.iter_mut().take(line.1 .1 + 1).skip(line.0 .1) {
                 item[line.0 .0 - min_x] = Some(Simulation::Wall);
             }
         } else {
@@ -128,7 +139,6 @@ pub fn solve_part1(input: &Input) -> usize {
     let mut count = 0;
     while let Some(point) = stack.pop() {
         if point.0 < max_y {
-
             if grid[point.0 + 1][point.1].is_none() {
                 stack.push(point);
                 stack.push((point.0 + 1, point.1));
@@ -143,18 +153,16 @@ pub fn solve_part1(input: &Input) -> usize {
                 break;
             }
 
-            if point.1 < max_x - 1 && grid[point.0+1][point.1 + 1].is_none() {
+            if point.1 < max_x - 1 && grid[point.0 + 1][point.1 + 1].is_none() {
                 stack.push(point);
                 stack.push((point.0 + 1, point.1 + 1));
                 continue;
             } else if point.1 == max_x - 1 {
                 break;
             }
-            
 
             count += 1;
             grid[point.0][point.1] = Some(Simulation::Sand);
-
         } else {
             break;
         }
@@ -222,10 +230,9 @@ pub fn solve_part2(input: &Input) -> usize {
         count += 1;
 
         grid[point.0][point.1] = Some(Simulation::Sand);
-        
-        if point.0 < max_y {
 
-            if point.1 < max_x - 1 && grid[point.0+1][point.1 + 1].is_none() {
+        if point.0 < max_y {
+            if point.1 < max_x - 1 && grid[point.0 + 1][point.1 + 1].is_none() {
                 stack.push((point.0 + 1, point.1 + 1));
             }
             if point.1 > 0 && grid[point.0 + 1][point.1 - 1].is_none() {
