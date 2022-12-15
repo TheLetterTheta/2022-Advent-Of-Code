@@ -5,7 +5,7 @@ use nom::{
     IResult,
 };
 use petgraph::{
-    algo::{dijkstra, astar},
+    algo::{astar, dijkstra},
     prelude::{DiGraphMap, GraphMap},
     Directed,
 };
