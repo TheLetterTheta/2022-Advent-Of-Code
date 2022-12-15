@@ -9,7 +9,7 @@ use nom::{
     IResult,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Sensor {
     pub position: (i64, i64),
     pub nearest_beacon: (i64, i64),
@@ -17,6 +17,52 @@ pub struct Sensor {
 
 fn point_distance(from: (i64, i64), to: (i64, i64)) -> u64 {
     from.0.abs_diff(to.0) + from.1.abs_diff(to.1)
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Line {
+    pub slope: i64,
+    pub b: i64,
+    pub domain: (i64, i64),
+    pub range: (i64, i64),
+}
+
+impl Line {
+    fn intersection(&self, other: &Line) -> Option<Vec<(i64, i64)>> {
+        let min_domain = (
+            self.domain.0.max(other.domain.0),
+            self.domain.1.min(other.domain.1),
+        );
+        if min_domain.1 < min_domain.0 {
+            // Domains don't overlap
+            return None;
+        }
+
+        let min_range = (
+            self.range.0.max(other.range.0),
+            self.range.1.min(other.range.1),
+        );
+        if min_range.1 < min_range.0 {
+            // Ranges don't overlap
+            return None;
+        }
+
+        let (a, c, b, d) = (self.slope, self.b, other.slope, other.b);
+        if a == b {
+            // Parallel lines
+            if c == d {
+                None
+            } else {
+                Some(
+                    (self.domain.0.max(other.domain.0)..self.domain.1.min(other.domain.1))
+                        .zip(self.range.0.max(other.range.0)..self.range.1.min(other.range.1))
+                        .collect_vec(),
+                )
+            }
+        } else {
+            Some(vec![((d - c) / (a - b), a * ((d - c) / a - b) + c)])
+        }
+    }
 }
 
 impl Sensor {
@@ -35,6 +81,56 @@ impl Sensor {
         } else {
             None
         }
+    }
+
+    pub fn point_in_range(&self, point: (i64, i64)) -> bool {
+        point_distance(self.position, point) <= self.beacon_distance()
+    }
+
+    pub fn intersection(&self, other: &Self) -> impl Iterator<Item = (i64, i64)> {
+        let self_checks = self.outer_perimiter();
+        let other_checks = other.outer_perimiter();
+
+        self_checks.into_iter().flat_map(move |check| {
+            other_checks
+                .into_iter()
+                .filter_map(move |o| o.intersection(&check))
+                .flatten()
+        })
+    }
+
+    pub fn outer_perimiter(&self) -> [Line; 4] {
+        self.perimiter(self.beacon_distance() as i64 + 1)
+    }
+
+    pub fn perimiter(&self, dist: i64) -> [Line; 4] {
+        // top
+        let top_left = Line {
+            slope: 1,
+            b: self.position.1 - (self.position.0 - dist),
+            domain: (self.position.0 - dist, self.position.0),
+            range: (self.position.1, self.position.1 + dist),
+        };
+        let top_right = Line {
+            slope: -1,
+            b: self.position.1 + dist + self.position.0,
+            domain: (self.position.0, self.position.0 + dist),
+            range: (self.position.1, self.position.1 + dist),
+        };
+        let bottom_right = Line {
+            slope: 1,
+            b: self.position.1 - (dist + self.position.0),
+            domain: (self.position.0, self.position.0 + dist),
+            range: (self.position.1 - dist, self.position.1),
+        };
+        let bottom_left = Line {
+            slope: -1,
+            b: self.position.1 + (self.position.0 - dist),
+            domain: (self.position.0 - dist, self.position.0),
+            range: (self.position.1 - dist, self.position.1),
+        };
+
+        [top_left, top_right, bottom_right, bottom_left]
     }
 }
 
@@ -98,6 +194,15 @@ pub fn solve_part1(input: &Input) -> u64 {
 }
 
 #[aoc(day15, part2)]
-pub fn solve_part2(input: &Input) -> usize {
-    todo!();
+pub fn solve_part2(input: &Input) -> i64 {
+    let Some((x, y)) = input
+        .iter()
+        .combinations(2)
+        .flat_map(|compare| compare[0].intersection(compare[1]))
+        .filter(|&p| p.0 >= 0 && p.0 <= 4_000_000 && p.1 >= 0 && p.1 <= 4_000_000)
+        .find(|point| !input.iter().any(|sensor| sensor.point_in_range(*point))) else {
+            panic!("No Solution!");
+        };
+
+    x * 4_000_000 + y
 }
