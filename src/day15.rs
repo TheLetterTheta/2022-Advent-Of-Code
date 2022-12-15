@@ -1,9 +1,7 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 use itertools::Itertools;
-use std::collections::HashSet;
 
 use nom::{
-    branch::alt,
     bytes::complete::tag,
     character::complete::{self, line_ending},
     multi::separated_list1,
@@ -26,6 +24,10 @@ impl Sensor {
         point_distance(self.position, self.nearest_beacon)
     }
 
+    /// Given a sensor at a point (x,y) with a Manhattan Distance of D
+    /// And a line (y), the segment of intersection is:
+    /// let offset = D - Distance(sensor y, line y)
+    /// The line segment therefore is [x - offset, x + offset]
     pub fn overlap_y(&self, point: i64) -> Option<(i64, i64)> {
         let offset = (self.beacon_distance() as i64) - (self.position.1.abs_diff(point) as i64);
         if offset > 0 {
@@ -37,11 +39,6 @@ impl Sensor {
 }
 
 type Input = Vec<Sensor>;
-
-/// Given a sensor at a point (x,y) with a Manhattan Distance of D
-/// And a line (y), the segment of intersection is:
-/// let offset = D - Distance(sensor y, line y)
-/// The line segment therefore is [x - offset, x + offset]
 
 fn parse_sensor(input: &str) -> IResult<&str, Sensor> {
     let (input, ((position_x, position_y), (beacon_x, beacon_y))) = preceded(
