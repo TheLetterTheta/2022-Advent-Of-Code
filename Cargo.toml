@@ -9,6 +9,7 @@ edition = "2021"
 aoc-runner = "0.3.0"
 aoc-runner-derive = "0.3.0"
 colored = "2.0.0"
+indicatif = { version = "0.17.2", features = ["rayon"] }
 itertools = "0.10.5"
 lazy_static = "1.4.0"
 lending-iterator = "0.1.6"

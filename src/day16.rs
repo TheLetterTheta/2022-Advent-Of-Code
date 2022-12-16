@@ -1,4 +1,6 @@
 use aoc_runner_derive::{aoc, aoc_generator};
+use indicatif::ParallelProgressIterator;
+use rayon::prelude::*;
 use itertools::Itertools;
 use petgraph::{
     algo::dijkstra,
@@ -46,16 +48,6 @@ fn parse_input(input: &str) -> IResult<&str, Input> {
 
 #[aoc_generator(day16)]
 pub fn day16_generator(input: &str) -> Input {
-    let input = "Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
-Valve BB has flow rate=13; tunnels lead to valves CC, AA
-Valve CC has flow rate=2; tunnels lead to valves DD, BB
-Valve DD has flow rate=20; tunnels lead to valves CC, AA, EE
-Valve EE has flow rate=3; tunnels lead to valves FF, DD
-Valve FF has flow rate=0; tunnels lead to valves EE, GG
-Valve GG has flow rate=0; tunnels lead to valves FF, HH
-Valve HH has flow rate=22; tunnel leads to valve GG
-Valve II has flow rate=0; tunnels lead to valves AA, JJ
-Valve JJ has flow rate=21; tunnel leads to valve II";
     let (input, output) = parse_input(input).unwrap();
     assert!(input.is_empty());
     output
@@ -69,45 +61,55 @@ pub fn solve_part1(input: &Input) -> i32 {
             .flat_map(|(from, (_, to))| to.iter().map(|t| (from.as_str(), t.as_str()))),
     );
 
-    let mut visited: HashSet<&str> = ["AA"].into();
-    let mut flow_rate = 0;
-    let mut flow = 0;
-    let mut curr = "AA";
-    let mut minutes = 30;
+    let get_to_paths = input
+        .iter()
+        .filter_map(|(k, (cost, _))| if *cost > 0 { Some(k) } else { None })
+        .collect_vec();
+    let len_to = get_to_paths.len();
 
-    while minutes > 0 {
-        // 30 minute count-UP?
+    let total: usize = (1..=len_to).product();
 
-        let find_next = dijkstra(&graph, curr, None, |_| 1);
-        let (next, distance, cost) = find_next
-            .iter()
-            .filter_map(|(node, distance)| {
-                if visited.contains(node) || distance >= &minutes {
-                    None
-                } else {
-                    Some((
-                        node,
-                        *distance + 1,
-                        input
-                            .get(node.to_owned())
-                            .map(|v| v.0 * (minutes - (1 + distance)))?
-                            .checked_sub((1 + distance) * flow_rate)?,
-                    ))
+    get_to_paths
+        .into_iter()
+        .permutations(len_to)
+        .par_bridge()
+        .progress_count(total as u64)
+        .map(|mut next_path| {
+            let mut flow_rate = 0;
+            let mut flow = 0;
+            let mut minutes = 30;
+            let mut curr = String::from("AA");
+            let mut visited = vec![];
+
+            while minutes > 0 {
+                // 30 minute count-UP?
+
+                let Some(next) = next_path.pop() else {
+                    flow += minutes * flow_rate;
+                    return flow;
+                };
+                visited.push(next);
+
+                let path_map = dijkstra(&graph, &curr, Some(next.as_str()), |_| 1);
+                let distance = path_map.get(next.as_str()).map(|v| *v).unwrap_or(minutes);
+
+                let distance = distance + 1;
+                if minutes < distance {
+                    // couldn't reach node
+                    continue;
                 }
-            })
-            .max_by_key(|(_, _, cost)| *cost)
-            .unwrap_or((&"", minutes, 0));
 
-        minutes -= distance;
-        flow += distance * flow_rate;
-        flow_rate += input.get(next.to_owned()).map(|v| v.0).unwrap_or(0);
-        visited.insert(next);
-        curr = next;
-        println!("Traveled for {} minutes (time remaining {}),to {} with {} flow rate. Turned on flow rate of {}. Current flow {}.",
-        &distance, minutes,&next, &flow_rate,  input.get(next.to_owned()).map(|v| v.0).unwrap_or(0), &flow);
-    }
+                minutes -= distance;
+                flow += distance * flow_rate;
+                flow_rate += input.get(next).map(|v| v.0).unwrap_or(0);
 
-    flow
+                curr = next.to_string();
+            }
+
+            flow
+        })
+        .max()
+        .expect("No solutions")
 }
 
 #[aoc(day16, part2)]
