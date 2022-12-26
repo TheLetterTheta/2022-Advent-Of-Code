@@ -1,4 +1,5 @@
 #![feature(let_chains)]
+#![feature(stmt_expr_attributes)]
 use aoc_runner_derive::aoc_lib;
 
 mod day1;
@@ -9,8 +10,8 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
-mod day17;
 mod day2;
+mod day20;
 mod day3;
 mod day4;
 mod day5;

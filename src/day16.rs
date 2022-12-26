@@ -134,7 +134,6 @@ pub fn solve_part1(input: &Input) -> u32 {
                     None
                 }
             })
-            .sorted_unstable_by_key(|&(_, distance, next_flow)| next_flow * (minutes - distance))
         {
             let mut open_next = opened.clone();
             open_next.insert(edge);
@@ -240,7 +239,6 @@ pub fn solve_part2(input: &Input) -> u32 {
                     None
                 }
             })
-            .sorted_unstable_by_key(|&(_, distance, next_flow)| next_flow * (minutes - distance))
         {
             path.push((
                 edge,
@@ -265,13 +263,7 @@ pub fn solve_part2(input: &Input) -> u32 {
     }
 
     // Node, minutes, flow_rate, elapsed_flow, open valves
-    path = vec![(
-        "AA",
-        26,
-        0,
-        0,
-        max_set
-    )];
+    path = vec![("AA", 26, 0, 0, max_set)];
     let mut elephant_max = 0;
 
     while let Some((curr, minutes, flow, elapsed, mut opened)) = path.pop() {
@@ -288,7 +280,6 @@ pub fn solve_part2(input: &Input) -> u32 {
                     None
                 }
             })
-            .sorted_unstable_by_key(|&(_, distance, next_flow)| next_flow * (minutes - distance))
         {
             path.push((
                 edge,
